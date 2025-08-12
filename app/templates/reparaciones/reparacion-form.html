@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+{% block content %}
+<!-- Contenido principal -->
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <!-- Barra superior con botón de menú para móviles y usuario -->
+    <div
+        class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <button class="btn d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="index.html">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="reparaciones.html">Reparaciones</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        {% if reparacion %}Editar Reparación{% else %}Nueva Reparación{% endif %}
+                    </li>
+                </ol>
+            </nav>
+            <h1 class="h2">{% if reparacion %}Editar Reparación{% else %}Nueva Reparación{% endif %}</h1>
+        </div>
+    </div>
+
+    <!-- Formulario de reparación -->
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <!-- Información básica -->
+                <h5 class="mb-3">Información Básica</h5>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label for="cliente" class="form-label">Cliente</label>
+                        <select class="form-select" id="cliente" name="cliente" required>
+                            <option value="">Seleccionar cliente</option>
+                            {% for c in clientes %}
+                            <option value="{{ c.id }}" {% if reparacion and reparacion.cliente == c.id %}selected{% endif %}>
+                                {{ c.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="vehiculo" class="form-label">Vehículo</label>
+                        <select class="form-select" id="vehiculo" name="vehiculo" required>
+                            <option value="">Seleccionar vehículo</option>
+                            {% for v in vehiculos %}
+                            <option value="{{ v.id }}" {% if reparacion and reparacion.vehiculo == v.id %}selected{% endif %}>
+                                {{ v.matricula }}({{v.marca}})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label for="mecanico" class="form-label">Mecánico Asignado</label>
+                        <select class="form-select" id="mecanico" name="mecanico" required>
+                            <option value="">Seleccionar mecánico</option>
+                            {% for m in mecanicos %}
+                            <option value="{{ m.id }}" {% if reparacion and reparacion.mecanico == m.id %}selected{% endif %}>
+                                {{ m.nombre }}({{m.especialidad}})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="estado" class="form-label">Estado</label>
+                        <select class="form-select" id="estado" name="estado" required>
+                            <option value="pendiente" {% if reparacion and reparacion.estado == 'pendiente' %}selected{% elif not reparacion %}selected{% endif %}>
+                                Pendiente
+                            </option>
+                            <option value="en_progreso" {% if reparacion and reparacion.estado == 'en_progreso' %}selected{% endif %}>
+                                En progreso
+                            </option>
+                            <option value="completada" {% if reparacion and reparacion.estado == 'completada' %}selected{% endif %}>
+                                Completada
+                            </option>
+                            <option value="cancelada" {% if reparacion and reparacion.estado == 'cancelada' %}selected{% endif %}>
+                                Cancelada
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label for="fechaEntrada" class="form-label">Fecha de Entrada</label>
+                        <input type="date" class="form-control" id="fechaEntrada" name="fechaEntrada" 
+                               value="{% if reparacion %}{{ reparacion.fecha_entrada }}{% endif %}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="fechaEstimada" class="form-label">Fecha Estimada de Salida</label>
+                        <input type="date" class="form-control" id="fechaEstimada" name="fechaEstimada" 
+                               value="{% if reparacion %}{{ reparacion.fecha_estimada }}{% endif %}" required>
+                    </div>
+                </div>
+
+                <!-- Descripción y diagnóstico -->
+                <h5 class="mb-3">Descripción y Diagnóstico</h5>
+                <div class="mb-4">
+                    <label for="descripcionProblema" class="form-label">Descripción del Problema</label>
+                    <textarea class="form-control" id="descripcionProblema" name="descripcionProblema" rows="3" required>{% if reparacion %}{{ reparacion.descripcion_problema }}{% endif %}</textarea>
+                </div>
+                <div class="mb-4">
+                    <label for="diagnostico" class="form-label">Diagnóstico</label>
+                    <textarea class="form-control" id="diagnostico" name="diagnostico" rows="3">{% if reparacion %}{{ reparacion.diagnostico }}{% endif %}</textarea>
+                </div>
+
+                <!-- Presupuesto -->
+                <h5 class="mb-3">Presupuesto</h5>
+                <div class="table-responsive mb-4">
+                    <table class="table" id="presupuestoTable">
+                        <thead>
+                            <tr>
+                                <th>Concepto</th>
+                                <th>Cantidad</th>
+                                <th>Precio Unitario (€)</th>
+                                <th>Total (€)</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- For editing existing repair with budget items, you would populate these rows -->
+                            <!-- For now, showing the default empty row -->
+                            <tr>
+                                <td>
+                                    <input type="text" class="form-control" name="concepto[]" placeholder="Concepto">
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control" name="cantidad[]" placeholder="Cantidad"
+                                        min="1" value="1">
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control" name="precio[]" placeholder="Precio"
+                                        min="0" step="0.01">
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control" name="total_linea[]" placeholder="Total"
+                                        readonly>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-danger btn-sm remove-row">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="5">
+                                    <button type="button" class="btn btn-sm btn-primary" id="addRow">
+                                        <i class="fas fa-plus me-1"></i> Añadir Concepto
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th colspan="3" class="text-end">Subtotal</th>
+                                <td>
+                                    <input type="number" class="form-control" id="subtotal" name="subtotal" 
+                                           value="{% if reparacion %}{{ reparacion.subtotal }}{% else %}0{% endif %}" readonly>
+                                </td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th colspan="3" class="text-end">IVA (21%)</th>
+                                <td>
+                                    <input type="number" class="form-control" id="iva" name="iva" 
+                                           value="{% if reparacion %}{{ reparacion.iva }}{% else %}0{% endif %}" readonly>
+                                </td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th colspan="3" class="text-end">Total</th>
+                                <td>
+                                    <input type="number" class="form-control" id="total" name="total" 
+                                           value="{% if reparacion %}{{ reparacion.total }}{% else %}0{% endif %}" readonly>
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Notas adicionales -->
+                <div class="mb-4">
+                    <label for="notas" class="form-label">Notas Adicionales</label>
+                    <textarea class="form-control" id="notas" name="notas" rows="3">{% if reparacion %}{{ reparacion.notas }}{% endif %}</textarea>
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="d-flex justify-content-end">
+                    <a href="reparaciones.html" class="btn btn-secondary me-2">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">
+                        {% if reparacion %}Actualizar Reparación{% else %}Guardar Reparación{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+</div>
+</div>
+
+<!-- Bootstrap JS y Popper.js -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Script para calcular totales en el presupuesto -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const table = document.getElementById('presupuestoTable');
+        const tbody = table.querySelector('tbody');
+        const addButton = document.getElementById('addRow');
+
+        // Función para calcular el total de una fila
+        function calcularTotalFila(fila) {
+            const cantidadInput = fila.querySelector('input[name="cantidad[]"]');
+            const precioInput = fila.querySelector('input[name="precio[]"]');
+            const totalInput = fila.querySelector('input[name="total_linea[]"]');
+
+            const cantidad = parseFloat(cantidadInput.value) || 0;
+            const precio = parseFloat(precioInput.value) || 0;
+            const total = cantidad * precio;
+
+            totalInput.value = total.toFixed(2);
+            return total;
+        }
+
+        // Función para calcular el total general
+        function calcularTotales() {
+            const filas = tbody.querySelectorAll('tr');
+            let subtotal = 0;
+
+            filas.forEach(fila => {
+                subtotal += calcularTotalFila(fila);
+            });
+
+            const iva = subtotal * 0.21;
+            const total = subtotal + iva;
+
+            document.getElementById('subtotal').value = subtotal.toFixed(2);
+            document.getElementById('iva').value = iva.toFixed(2);
+            document.getElementById('total').value = total.toFixed(2);
+        }
+
+        // Función para añadir eventos a una fila
+        function addRowEvents(fila) {
+            const cantidadInput = fila.querySelector('input[name="cantidad[]"]');
+            const precioInput = fila.querySelector('input[name="precio[]"]');
+            const removeButton = fila.querySelector('.remove-row');
+
+            cantidadInput.addEventListener('input', calcularTotales);
+            precioInput.addEventListener('input', calcularTotales);
+
+            removeButton.addEventListener('click', function () {
+                if (tbody.children.length > 1) {
+                    fila.remove();
+                    calcularTotales();
+                }
+            });
+        }
+
+        // Evento para añadir nueva fila
+        addButton.addEventListener('click', function () {
+            const nuevaFila = document.createElement('tr');
+            nuevaFila.innerHTML = `
+                    <td>
+                        <input type="text" class="form-control" name="concepto[]" placeholder="Concepto">
+                    </td>
+                    <td>
+                        <input type="number" class="form-control" name="cantidad[]" placeholder="Cantidad" min="1" value="1">
+                    </td>
+                    <td>
+                        <input type="number" class="form-control" name="precio[]" placeholder="Precio" min="0" step="0.01">
+                    </td>
+                    <td>
+                        <input type="number" class="form-control" name="total_linea[]" placeholder="Total" readonly>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-danger btn-sm remove-row">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+
+            tbody.appendChild(nuevaFila);
+            addRowEvents(nuevaFila);
+            calcularTotales();
+        });
+
+        // Añadir eventos a la fila inicial
+        const initialRow = tbody.querySelector('tr');
+        if (initialRow) {
+            addRowEvents(initialRow);
+        }
+
+        // Calcular totales iniciales
+        calcularTotales();
+    });
+</script>
+{% endblock %}

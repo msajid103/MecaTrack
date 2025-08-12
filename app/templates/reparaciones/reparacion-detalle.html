@@ -1,0 +1,398 @@
+{% extends 'base.html' %}
+{% block content %}
+<!-- Contenido principal -->
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <!-- Barra superior con botón de menú para móviles y usuario -->
+    <div
+        class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <button class="btn d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('reparaciones.listar') }}">Reparaciones</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Reparación #{{ reparacion.id[-3:] }}
+                    </li>
+                </ol>
+            </nav>
+            <h1 class="h2">Detalle de Reparación</h1>
+        </div>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+                <a href="{{ url_for('reparaciones.editar', id=reparacion.id) }}" class="btn btn-primary">
+                    <i class="fas fa-edit me-1"></i> Editar
+                </a>
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal"
+                    data-bs-target="#deleteReparacionModal">
+                    <i class="fas fa-trash me-1"></i> Eliminar
+                </button>
+            </div>
+            <button type="button" class="btn btn-success" data-bs-toggle="modal"
+                data-bs-target="#addActualizacionModal">
+                <i class="fas fa-plus me-1"></i> Añadir Actualización
+            </button>
+        </div>
+    </div>
+
+    <!-- Información de la reparación -->
+    <div class="row">
+        <!-- Columna de información general -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Información General</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div
+                            class="badge bg-{% if reparacion.estado == 'pendiente' %}warning{% elif reparacion.estado == 'en_progreso' %}primary{% elif reparacion.estado == 'completada' %}success{% elif reparacion.estado == 'cancelada' %}danger{% else %}secondary{% endif %} p-3 mb-3">
+                            <i class="fas fa-tools fa-3x"></i>
+                        </div>
+                        <h4>Reparación #{{ reparacion.id[-3:] }}</h4>
+                        <p class="text-muted">{{ reparacion.descripcion_problema[:50] }}{% if
+                            reparacion.descripcion_problema|length > 50 %}...{% endif %}</p>
+                        <span
+                            class="badge bg-{% if reparacion.estado == 'pendiente' %}warning{% elif reparacion.estado == 'en_progreso' %}primary{% elif reparacion.estado == 'completada' %}success{% elif reparacion.estado == 'cancelada' %}danger{% else %}secondary{% endif %}">
+                            {% if reparacion.estado == 'pendiente' %}Pendiente
+                            {% elif reparacion.estado == 'en_progreso' %}En progreso
+                            {% elif reparacion.estado == 'completada' %}Completada
+                            {% elif reparacion.estado == 'cancelada' %}Cancelada
+                            {% else %}{{ reparacion.estado|title }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    <hr>
+                    <div class="info-list">
+                        <div class="info-item">
+                            <span class="info-label"><i class="fas fa-calendar-alt me-2"></i>Fecha de entrada</span>
+                            <span class="info-value">{{ reparacion.fecha_entrada }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label"><i class="fas fa-calendar-check me-2"></i>Fecha estimada de
+                                salida</span>
+                            <span class="info-value">{{ reparacion.fecha_estimada }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label"><i class="fas fa-user me-2"></i>Cliente</span>
+                            <span class="info-value">
+                                {% if cliente %}
+                                <a href="{{ url_for('clientes.detalle', id=cliente.id) }}">{{ cliente.nombre }}</a>
+                                {% else %}
+                                Cliente no encontrado
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label"><i class="fas fa-car me-2"></i>Vehículo</span>
+                            <span class="info-value">
+                                {% if vehiculo %}
+                                <a href="{{ url_for('vehiculos.detalle', id=vehiculo.id) }}">{{ vehiculo.marca }} {{
+                                    vehiculo.modelo }} ({{ vehiculo.matricula }})</a>
+                                {% else %}
+                                Vehículo no encontrado
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label"><i class="fas fa-user-cog me-2"></i>Mecánico asignado</span>
+                            <span class="info-value">
+                                {% if mecanico %}
+                                <a href="{{ url_for('mecanicos.detalle', nif=mecanico.nif) }}">{{ mecanico.nombre }}</a>
+                                {% else %}
+                                Mecánico no asignado
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% if reparacion.notas %}
+                        <div class="info-item">
+                            <span class="info-label"><i class="fas fa-sticky-note me-2"></i>Notas</span>
+                            <span class="info-value">{{ reparacion.notas }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna de detalles y progreso -->
+        <div class="col-md-8">
+            <!-- Estado de la reparación -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Estado de la Reparación</h5>
+                </div>
+                <div class="card-body">
+                    {% set progress_value = 0 %}
+                    {% if reparacion.estado == 'pendiente' %}
+                    {% set progress_value = 20 %}
+                    {% elif reparacion.estado == 'en_progreso' %}
+                    {% set progress_value = 60 %}
+                    {% elif reparacion.estado == 'completada' %}
+                    {% set progress_value = 100 %}
+                    {% elif reparacion.estado == 'cancelada' %}
+                    {% set progress_value = 0 %}
+                    {% endif %}
+
+                    <div class="progress mb-3">
+                        <div class="progress-bar bg-{% if reparacion.estado == 'cancelada' %}danger{% else %}primary{% endif %}"
+                            role="progressbar" style="width: {{ progress_value }}%" aria-valuenow="{{ progress_value }}"
+                            aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <div class="d-flex justify-content-between text-center">
+                        <div class="repair-status-item">
+                            <div class="repair-status-circle {% if progress_value >= 20 %}active{% endif %}">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="repair-status-text">Recepción</div>
+                        </div>
+                        <div class="repair-status-item">
+                            <div class="repair-status-circle {% if progress_value >= 40 %}active{% endif %}">
+                                <i class="fas fa-search"></i>
+                            </div>
+                            <div class="repair-status-text">Diagnóstico</div>
+                        </div>
+                        <div class="repair-status-item">
+                            <div class="repair-status-circle {% if progress_value >= 60 %}active{% endif %}">
+                                <i class="fas fa-cog"></i>
+                            </div>
+                            <div class="repair-status-text">Reparación</div>
+                        </div>
+                        <div class="repair-status-item">
+                            <div class="repair-status-circle {% if progress_value >= 80 %}active{% endif %}">
+                                <i class="fas fa-vial"></i>
+                            </div>
+                            <div class="repair-status-text">Pruebas</div>
+                        </div>
+                        <div class="repair-status-item">
+                            <div class="repair-status-circle {% if progress_value >= 100 %}active{% endif %}">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="repair-status-text">Entrega</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Descripción del problema y diagnóstico -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Descripción y Diagnóstico</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h6>Descripción del Problema</h6>
+                        <p>{{ reparacion.descripcion_problema or 'No se ha proporcionado descripción del problema.' }}
+                        </p>
+                    </div>
+                    {% if reparacion.diagnostico %}
+                    <div>
+                        <h6>Diagnóstico</h6>
+                        <p>{{ reparacion.diagnostico }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Actualizaciones -->
+            {% if actualizaciones %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Actualizaciones</h5>
+                </div>
+                <div class="card-body">
+                    <div class="repair-updates">
+                        {% for actualizacion in actualizaciones %}
+                        <div class="update-item">
+                            <div class="update-date">{{ actualizacion.fecha }} - {{ actualizacion.hora }}</div>
+                            <div class="update-content">
+                                <strong>{{ actualizacion.titulo }}</strong>
+                                <p>{{ actualizacion.descripcion }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Presupuesto -->
+            {% if conceptos_presupuesto or reparacion.total > 0 %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Presupuesto</h5>
+                </div>
+                <div class="card-body">
+                    {% if conceptos_presupuesto %}
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Concepto</th>
+                                <th>Cantidad</th>
+                                <th class="text-end">Precio Unitario</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for concepto in conceptos_presupuesto %}
+                            <tr>
+                                <td>{{ concepto.descripcion }}</td>
+                                <td>{{ concepto.cantidad }}</td>
+                                <td class="text-end">{{ "%.2f"|format(concepto.subtotal) }} €</td>
+                                <td class="text-end">{{ "%.2f"|format(concepto.total) }} €</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="3" class="text-end">Subtotal</th>
+                                <th class="text-end">{{ "%.2f"|format(reparacion.subtotal) }} €</th>
+                            </tr>
+                            <tr>
+                                <th colspan="3" class="text-end">IVA (21%)</th>
+                                <th class="text-end">{{ "%.2f"|format(reparacion.iva) }} €</th>
+                            </tr>
+                            <tr>
+                                <th colspan="3" class="text-end">Total</th>
+                                <th class="text-end">{{ "%.2f"|format(reparacion.total) }} €</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <h6>Totales del Presupuesto</h6>
+                        <div class="row">
+                            <div class="col-4 text-end"><strong>Subtotal:</strong></div>
+                            <div class="col-2 text-end">{{ "%.2f"|format(reparacion.subtotal) }} €</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-4 text-end"><strong>IVA (21%):</strong></div>
+                            <div class="col-2 text-end">{{ "%.2f"|format(reparacion.iva) }} €</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-4 text-end"><strong>Total:</strong></div>
+                            <div class="col-2 text-end"><strong>{{ "%.2f"|format(reparacion.total) }} €</strong></div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="d-flex justify-content-end mt-3">
+                        <button class="btn btn-outline-primary me-2" onclick="window.print();">
+                            <i class="fas fa-print me-1"></i> Imprimir Presupuesto
+                        </button>
+                        <button class="btn btn-primary" onclick="enviarPresupuesto('{{ reparacion.id }}');">
+                            <i class="fas fa-envelope me-1"></i> Enviar al Cliente
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</main>
+
+
+<!-- Modal para añadir actualización -->
+<div class="modal fade" id="addActualizacionModal" tabindex="-1" aria-labelledby="addActualizacionModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addActualizacionModalLabel">Añadir Actualización</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('reparaciones.detalle', id=reparacion.id) }}">
+                <div class="modal-body">
+
+                    <div class="mb-3">
+                        <label for="descripcionActualizacion" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="descripcionActualizacion" name="descripcion" rows="3"
+                            required>{{ reparacion.descripcion_problema[:50] }}{% if
+                            reparacion.descripcion_problema|length > 50 %}...{% endif %}</textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label for="diagnostico" class="form-label">Diagnóstico</label>
+                        <textarea class="form-control" id="diagnostico" name="diagnostico"
+                            rows="3">{% if reparacion %}{{ reparacion.diagnostico }}{% endif %}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="estadoReparacion" class="form-label">Actualizar Estado</label>
+                        <select class="form-select" id="estadoReparacion" name="estado">
+                            <option value="">No cambiar estado</option>
+                            <option value="pendiente" {% if reparacion.estado=='pendiente' %}selected{% endif %}>
+                                Pendiente</option>
+                            <option value="en_progreso" {% if reparacion.estado=='en_progreso' %}selected{% endif %}>En
+                                progreso</option>
+                            <option value="completada" {% if reparacion.estado=='completada' %}selected{% endif %}>
+                                Completada</option>
+                            <option value="cancelada" {% if reparacion.estado=='cancelada' %}selected{% endif %}>
+                                Cancelada</option>
+                        </select>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="notificarCliente" name="notificar_cliente"
+                            value="1">
+                        <label class="form-check-label" for="notificarCliente">
+                            Notificar al cliente
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para confirmar eliminación -->
+<div class="modal fade" id="deleteReparacionModal" tabindex="-1" aria-labelledby="deleteReparacionModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteReparacionModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('reparaciones.borrar', id=reparacion.id) }}">
+                <div class="modal-body">
+                    <p>¿Está seguro de que desea eliminar la reparación <strong>#{{ reparacion.id[-3:] }}</strong>?</p>
+                    <p class="text-danger">Esta acción no se puede deshacer.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS y Popper.js -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    function enviarPresupuesto(reparacionId) {
+        // Implement email sending functionality
+        fetch(`/reparaciones/${reparacionId}/enviar-presupuesto`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Presupuesto enviado correctamente al cliente.');
+                } else {
+                    alert('Error al enviar el presupuesto: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al enviar el presupuesto.');
+            });
+    }
+</script>
+{% endblock %}

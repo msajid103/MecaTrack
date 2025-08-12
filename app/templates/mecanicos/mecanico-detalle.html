@@ -1,0 +1,385 @@
+{% extends 'base.html' %}
+{% block content %}
+            <!-- Contenido principal -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Barra superior con botón de menú para móviles y usuario -->
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <div>
+                        <button class="btn d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a href="{{ url_for('index.index') }}">Dashboard</a></li>
+                                <li class="breadcrumb-item"><a href="{{ url_for('mecanicos.registrar') }}">Mecánicos</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">{{ mecanico.nombre }}</li>
+                            </ol>
+                        </nav>
+                        <h1 class="h2">Detalle de Mecánico</h1>
+                    </div>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <div class="btn-group me-2">
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editMecanicoModal">
+                                <i class="fas fa-edit me-1"></i> Editar
+                            </button>
+                            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteMecanicoModal">
+                                <i class="fas fa-trash me-1"></i> Eliminar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información del mecánico -->
+                <div class="row">
+                    <!-- Columna de información personal -->
+                    <div class="col-md-4 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="text-center mb-4">
+                                    <div class="avatar-placeholder mb-3">
+                                        <i class="fas fa-user-circle fa-5x"></i>
+                                    </div>
+                                    <h4>{{ mecanico.nombre }}</h4>
+                                    <p class="text-muted">{{ mecanico.especialidad }}</p>
+                                    {% if mecanico.estado == 'Disponible' %}
+                                        <span class="badge bg-success">{{ mecanico.estado }}</span>
+                                    {% elif mecanico.estado == 'Ocupado' %}
+                                        <span class="badge bg-warning">{{ mecanico.estado }}</span>
+                                    {% elif mecanico.estado == 'No disponible' %}
+                                        <span class="badge bg-danger">{{ mecanico.estado }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ mecanico.estado }}</span>
+                                    {% endif %}
+                                </div>
+                                <hr>
+                                <div class="info-list">
+                                    <div class="info-item">
+                                        <span class="info-label"><i class="fas fa-id-card me-2"></i>NIF</span>
+                                        <span class="info-value">{{ mecanico.nif }}</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label"><i class="fas fa-envelope me-2"></i>Email</span>
+                                        <span class="info-value">{{ mecanico.email }}</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label"><i class="fas fa-phone me-2"></i>Teléfono</span>
+                                        <span class="info-value">{{ mecanico.telefono }}</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label"><i class="fas fa-map-marker-alt me-2"></i>Dirección</span>
+                                        <span class="info-value">{{ mecanico.direccion }}</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label"><i class="fas fa-calendar-alt me-2"></i>Fecha de contratación</span>
+                                        <span class="info-value">{{ mecanico.fechaContratacion }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Columna de estadísticas y reparaciones -->
+                    <div class="col-md-8">
+                        <!-- Estadísticas -->
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="card dashboard-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="card-subtitle mb-1 text-muted">Reparaciones Activas</h6>
+                                                <h2 class="card-title mb-0">{{ reparaciones_activas|length if reparaciones_activas else 0 }}</h2>
+                                            </div>
+                                            <div class="dashboard-icon bg-primary-light">
+                                                <i class="fas fa-tools"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card dashboard-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="card-subtitle mb-1 text-muted">Completadas (Mes)</h6>
+                                                <h2 class="card-title mb-0">{{ reparaciones_mes|length if reparaciones_mes else 0 }}</h2>
+                                            </div>
+                                            <div class="dashboard-icon bg-success-light">
+                                                <i class="fas fa-check-circle"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card dashboard-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="card-subtitle mb-1 text-muted">Total Histórico</h6>
+                                                <h2 class="card-title mb-0">{{ reparaciones_historicas|length if reparaciones_historicas else 0 }}</h2>
+                                            </div>
+                                            <div class="dashboard-icon bg-info-light">
+                                                <i class="fas fa-history"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Reparaciones asignadas -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Reparaciones Asignadas</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if reparaciones_activas %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Cliente</th>
+                                                <th>Vehículo</th>
+                                                <th>Descripción</th>
+                                                <th>Estado</th>
+                                                <th>Fecha</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for reparacion in reparaciones_activas %}
+                                            <tr>
+                                                <td>#{{ reparacion.id }}</td>
+                                                <td>{{ reparacion.cliente.nombre if reparacion.cliente else 'N/A' }}</td>
+                                                <td>{% if reparacion.vehiculo %}{{ reparacion.vehiculo.marca }} {{ reparacion.vehiculo.modelo }} ({{ reparacion.vehiculo.matricula }}){% else %}N/A{% endif %}</td>
+                                                <td>{{ reparacion.descripcion_problema[:50] }}{% if reparacion.descripcion_problema|length > 50 %}...{% endif %}</td>
+                                                <td>
+                                                    {% if reparacion.estado == 'En progreso' %}
+                                                        <span class="badge bg-warning">{{ reparacion.estado }}</span>
+                                                    {% elif reparacion.estado == 'Pendiente' %}
+                                                        <span class="badge bg-secondary">{{ reparacion.estado }}</span>
+                                                    {% elif reparacion.estado == 'Completada' %}
+                                                        <span class="badge bg-success">{{ reparacion.estado }}</span>
+                                                    {% else %}
+                                                        <span class="badge bg-info">{{ reparacion.estado }}</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ reparacion.fecha_entrada }}</td>
+                                                <td>
+                                                    <a href="{{ url_for('reparaciones.detalle', id=reparacion.id) }}" class="btn btn-sm btn-info">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% else %}
+                                <p class="text-muted">No hay reparaciones activas asignadas a este mecánico.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Historial de reparaciones -->
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Historial de Reparaciones</h5>
+                                <button class="btn btn-sm btn-outline-primary">Ver todo</button>
+                            </div>
+                            <div class="card-body">
+                                {% if reparaciones_historicas %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Cliente</th>
+                                                <th>Vehículo</th>
+                                                <th>Descripción</th>
+                                                <th>Estado</th>
+                                                <th>Fecha</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for reparacion in reparaciones_historicas[:5] %}
+                                            <tr>
+                                                <td>#{{ reparacion.id }}</td>
+                                                <td>{{ reparacion.cliente.nombre if reparacion.cliente else 'N/A' }}</td>
+                                                <td>{% if reparacion.vehiculo %}{{ reparacion.vehiculo.marca }} {{ reparacion.vehiculo.modelo }} ({{ reparacion.vehiculo.matricula }}){% else %}N/A{% endif %}</td>
+                                                <td>{{ reparacion.descripcion_problema[:50] }}{% if reparacion.descripcion_problema|length > 50 %}...{% endif %}</td>
+                                                <td>
+                                                    {% if reparacion.estado == 'Completada' %}
+                                                        <span class="badge bg-success">{{ reparacion.estado }}</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">{{ reparacion.estado }}</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ reparacion.fecha_entrada }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% else %}
+                                <p class="text-muted">No hay historial de reparaciones para este mecánico.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+ 
+    <!-- Modal para editar mecánico -->
+    <div class="modal fade" id="editMecanicoModal" tabindex="-1" aria-labelledby="editMecanicoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editMecanicoModalLabel">Editar Mecánico</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="POST" action="{{ url_for('mecanicos.editar', nif=mecanico.nif) }}" id="editMecanicoForm">>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="editNombre" class="form-label">Nombre completo</label>
+                                <input type="text" class="form-control" id="editNombre" name="nombre" value="{{ mecanico.nombre }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editNif" class="form-label">NIF</label>
+                                <input type="text" class="form-control" id="editNif" name="nif" value="{{ mecanico.nif }}" readonly>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="editEmail" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="editEmail" name="email" value="{{ mecanico.email }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editTelefono" class="form-label">Teléfono</label>
+                                <input type="tel" class="form-control" id="editTelefono" name="telefono" value="{{ mecanico.telefono }}" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="editEspecialidad" class="form-label">Especialidad</label>
+                                <select class="form-select" id="editEspecialidad" name="especialidad" required>
+                                    <option value="">Seleccionar especialidad</option>
+                                    <option value="Mecánica general" {% if mecanico.especialidad == 'Mecánica general' %}selected{% endif %}>Mecánica general</option>
+                                    <option value="Electricidad" {% if mecanico.especialidad == 'Electricidad' %}selected{% endif %}>Electricidad</option>
+                                    <option value="Chapa y pintura" {% if mecanico.especialidad == 'Chapa y pintura' %}selected{% endif %}>Chapa y pintura</option>
+                                    <option value="Neumáticos" {% if mecanico.especialidad == 'Neumáticos' %}selected{% endif %}>Neumáticos</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editFechaContratacion" class="form-label">Fecha de contratación</label>
+                                <input type="date" class="form-control" id="editFechaContratacion" name="fecha_contratacion" value="{{ mecanico.fechaContratacion }}" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="editEstado" class="form-label">Estado</label>
+                                <select class="form-select" id="editEstado" name="estado" required>
+                                    <option value="Disponible" {% if mecanico.estado == 'Disponible' %}selected{% endif %}>Disponible</option>
+                                    <option value="Ocupado" {% if mecanico.estado == 'Ocupado' %}selected{% endif %}>Ocupado</option>
+                                    <option value="No disponible" {% if mecanico.estado == 'No disponible' %}selected{% endif %}>No disponible</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDireccion" class="form-label">Dirección</label>
+                            <input type="text" class="form-control" id="editDireccion" name="direccion" value="{{ mecanico.direccion }}">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para confirmar eliminación -->
+    <div class="modal fade" id="deleteMecanicoModal" tabindex="-1" aria-labelledby="deleteMecanicoModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteMecanicoModalLabel">Confirmar Eliminación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Está seguro de que desea eliminar al mecánico <strong>{{ mecanico.nombre }}</strong>?</p>
+                    <p class="text-danger">Esta acción no se puede deshacer. Todas las reparaciones asignadas a este mecánico quedarán sin asignar.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <a href="{{ url_for('mecanicos.borrar', nif=mecanico.nif) }}" class="btn btn-danger" id="confirmDelete">Eliminar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript for handling modals and AJAX -->
+    <script>
+        // Handle edit form submission with AJAX
+        document.getElementById('editMecanicoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const nif = '{{ mecanico.nif }}';
+            
+            fetch(`/mecanicos/editar/${nif}`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Close modal and reload page
+                    bootstrap.Modal.getInstance(document.getElementById('editMecanicoModal')).hide();
+                    location.reload();
+                } else {
+                    alert('Error al actualizar el mecánico');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al actualizar el mecánico');
+            });
+        });
+
+        // Handle delete confirmation
+        document.getElementById('confirmDelete').addEventListener('click', function() {
+            const nif = '{{ mecanico.nif }}';
+            window.location.href = `/mecanicos/borrar?nif=${nif}`;
+        });
+
+        // Auto-hide alerts after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    alert.style.display = 'none';
+                }, 5000);
+            });
+        });
+    </script>
+
+    <!-- Bootstrap JS y Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}

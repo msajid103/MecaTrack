@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- Contenido principal -->
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <!-- Barra superior con botón de menú para móviles y usuario -->
+    <div
+        class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <button class="btn d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="h2">Clientes</h1>
+        </div>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addClienteModal">
+                <i class="fas fa-plus me-1"></i> Nuevo Cliente
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtros y búsqueda -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" placeholder="Buscar cliente por nombre, email o teléfono...">
+                <button class="btn btn-outline-secondary" type="button">Buscar</button>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select class="form-select">
+                <option selected>Ordenar por</option>
+                <option>Nombre (A-Z)</option>
+                <option>Nombre (Z-A)</option>
+                <option>Fecha de registro (más reciente)</option>
+                <option>Fecha de registro (más antiguo)</option>
+                <option>Vehículos (mayor a menor)</option>
+            </select>
+        </div>
+    </div>
+
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>DNI</th>
+                <th>Nombre</th>
+                <th>email</th>
+                <th>Teléfono</th>
+                <th>Dirección</th>
+                <th>Número de Vehículos</th>
+                <th>Fecha de registro</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in clientes %}
+            <tr>
+                <td>{{ c.nif }}</td>
+                <td>{{ c.nombre }}</td>
+                <td>{{ c.email }}</td>
+                <td>{{ c.telefono }}</td>
+                <td>{{ c.direccion }}</td>
+                <td>{{ c.numVehiculos }}</td>
+                <td>{{ c.fechaRegistro | format_date }}</td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <a href="{{ url_for('clientes.detalle',id= c.id)}}" class="btn btn-info me-2">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <button type="button" class="btn btn-primary me-2 edit-btn" 
+                            data-id="{{ c.id }}"
+                            data-nif="{{ c.nif }}" data-nombre="{{ c.nombre }}" 
+                            data-email="{{ c.email }}" data-telefono="{{ c.telefono }}"
+                            data-direccion="{{ c.direccion or '' }}" data-ciudad="{{ c.ciudad }}"
+                            data-codigoPostal="{{ c.codigoPostal }}"                           
+                            data-notas="{{ c.notas }}"
+                            data-bs-toggle="modal" data-bs-target="#editClienteModal">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal"
+                            data-bs-target="#deleteClienteModal" data-id="{{ c.id }}" data-name="{{ c.nombre }}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+
+</main>
+
+
+<!-- Modal para añadir cliente -->
+<div class="modal fade" id="addClienteModal" tabindex="-1" aria-labelledby="addClienteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addClienteModalLabel">Añadir Nuevo Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Formulario para añadir cliente -->
+                <!-- En Flask, este formulario enviaría datos a una ruta específica -->
+                <form method="POST">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="nombre" class="form-label">Nombre completo</label>
+                            <input type="text" class="form-control" id="nombre" required name="nombre">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="dni" class="form-label">DNI/NIF</label>
+                            <input type="text" class="form-control" id="dni" required name="nif">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="telefono" class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" id="telefono" name="telefono" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="direccion" class="form-label">Dirección</label>
+                        <input type="text" class="form-control" id="direccion" name="direccion">
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="ciudad" class="form-label">Ciudad</label>
+                            <input type="text" class="form-control" id="ciudad" name="ciudad">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="codigoPostal" class="form-label">Código Postal</label>
+                            <input type="text" class="form-control" id="codigoPostal" name="codigoPostal">
+                        </div>                       
+                    </div>
+                    <div class="mb-3">
+                        <label for="notas" class="form-label">Notas adicionales</label>
+                        <textarea class="form-control" id="notas" name="notas" rows="3"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar cliente (similar al de añadir pero con datos precargados) -->
+<div class="modal fade" id="editClienteModal" tabindex="-1" aria-labelledby="editClienteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editClienteModalLabel">Editar Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Formulario para editar cliente (con datos precargados) -->
+                <form id ="editClienteForm" method="POST">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editNombre" class="form-label">Nombre completo</label>
+                            <input type="text" class="form-control" id="editNombre" name="nombre"  required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editDni" class="form-label">DNI/NIF</label>
+                            <input type="text" class="form-control" id="editDni" name="nif"  required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="editEmail" name="email" 
+                                required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editTelefono" class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" id="editTelefono" name="telefono" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editDireccion" class="form-label">Dirección</label>
+                        <input type="text" class="form-control" id="editDireccion" name="direccion" >
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editCiudad" class="form-label">Ciudad</label>
+                            <input type="text" class="form-control" id="editCiudad" name="ciudad" value="Madrid">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editCodigoPostal" class="form-label">Código Postal</label>
+                            <input type="text" class="form-control" id="editCodigoPostal" name="codigoPostal" value="28001">
+                        </div>                      
+                    </div>
+                    <div class="mb-3">
+                        <label for="editNotas" class="form-label">Notas adicionales</label>
+                        <textarea class="form-control" id="editNotas" name="notas"
+                            rows="3">Cliente habitual. Prefiere ser contactado por teléfono.</textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="saveEditBtn" class="btn btn-primary">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para confirmar eliminación -->
+<div class="modal fade" id="deleteClienteModal" tabindex="-1" aria-labelledby="deleteClienteModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteClienteModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro de que desea eliminar al cliente <strong id="clienteNombre">...</strong>?</p>
+                <p class="text-danger">Esta acción no se puede deshacer. Se eliminarán también todos los vehículos y
+                    reparaciones asociados a este cliente.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <!-- "Eliminar" as a link -->
+                <a href="#" class="btn btn-danger" id="confirmDeleteBtn">Eliminar</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Bootstrap JS y Popper.js -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const deleteModal = document.getElementById('deleteClienteModal');
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const clienteId = button.getAttribute('data-id');
+        const clienteNombre = button.getAttribute('data-name');
+
+        // Update name in modal
+        document.getElementById('clienteNombre').textContent = clienteNombre;
+
+        // Update the delete link (change route if necessary)
+        const deleteUrl = `{{ url_for('clientes.borrar', id='__ID__') }}`.replace('__ID__', clienteId);
+        document.getElementById('confirmDeleteBtn').setAttribute('href', deleteUrl);
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.edit-btn').forEach(button => {
+            button.addEventListener('click', function () {
+                const id = this.getAttribute('data-id');
+                const nif = this.getAttribute('data-nif');
+                const nombre = this.getAttribute('data-nombre');
+                const email = this.getAttribute('data-email');
+                const telefono = this.getAttribute('data-telefono');
+                const ciudad = this.getAttribute('data-ciudad');
+                const codigoPostal = this.getAttribute('data-codigoPostal');
+                const direccion = this.getAttribute('data-direccion');                
+                const notas = this.getAttribute('data-notas');
+
+                document.getElementById('editDni').value = nif;
+                document.getElementById('editNombre').value = nombre;
+                document.getElementById('editEmail').value = email;
+                document.getElementById('editTelefono').value = telefono;
+                document.getElementById('editDireccion').value = direccion;
+                document.getElementById('editCiudad').value = ciudad;
+                document.getElementById('editCodigoPostal').value = codigoPostal;               
+                document.getElementById('editNotas').value = notas;
+                const form = document.getElementById('editClienteForm');
+                form.action = "{{ url_for('clientes.editar', id='')}}"+ id;
+
+            })
+        });
+        document.getElementById('saveEditBtn').addEventListener('click', function(){
+            document.getElementById('editClienteForm').submit();
+        });
+    });
+</script>
+{% endblock %}

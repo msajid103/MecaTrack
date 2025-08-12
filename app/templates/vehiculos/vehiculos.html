@@ -1,0 +1,414 @@
+{% extends 'base.html' %}
+{% block content %}
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <!-- Barra superior con botón de menú para móviles y usuario -->
+    <div
+        class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <button class="btn d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="h2">Vehículos</h1>
+        </div>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addVehiculoModal">
+                <i class="fas fa-plus me-1"></i> Nuevo Vehículo
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtros y búsqueda -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" placeholder="Buscar por matrícula, marca o modelo...">
+                <button class="btn btn-outline-secondary" type="button">Buscar</button>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select">
+                <option selected>Filtrar por tipo</option>
+                <option>Turismo</option>
+                <option>Motocicleta</option>
+                <option>Furgoneta</option>
+                <option>Camión</option>
+                <option>Todos</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select">
+                <option selected>Ordenar por</option>
+                <option>Matrícula (A-Z)</option>
+                <option>Marca (A-Z)</option>
+                <option>Año (más reciente)</option>
+                <option>Año (más antiguo)</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Tabla de vehículos -->
+    <!-- En Flask, esta tabla se llenaría con datos de la base de datos -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Matrícula</th>
+                            <th>Marca</th>
+                            <th>Modelo</th>
+                            <th>Año</th>
+                            <th>Tipo</th>
+                            <th>Cliente</th>
+                            <th>Última Revisión</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- En Flask, esto sería un bucle for con los datos de la BD -->
+                        {% for v in vehiculos %}
+                        <tr>
+                            <td>{{ v.matricula }}</td>
+                            <td>{{ v.marca }}</td>
+                            <td>{{ v.modelo }}</td>
+                            <td>{{ v.anio }}</td>
+                            <td>{{ v.tipo }}</td>
+                            <td>
+                                {% for c in clientes %}
+                                {% if c.id == v.idcliente %}{{ c.nombre }}{% endif %}
+                                {% endfor %}
+                            </td>
+                            <td>{{ v.fechaUltimoMantenimiento or 'Sin revisión' }}</td>
+                            <td>
+                                <span class="badge 
+                                        {% if v.estado == 'Activo' %}bg-success
+                                        {% elif v.estado == 'En reparación' %}bg-warning
+                                        {% else %}bg-secondary{% endif %}">
+                                    {{ v.estado }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('vehiculos.detalle',id= v.id)}}" class="btn btn-info me-2">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-primary me-2 edit-btn" data-id="{{ v.id }}"
+                                        data-cliente="{{ v.idcliente }}" data-tipo="{{ v.tipo }}"
+                                        data-marca="{{ v.marca }}" data-modelo="{{ v.modelo }}"
+                                        data-matricula="{{ v.matricula }}" data-anio="{{ v.anio }}"
+                                        data-color="{{ v.color }}" data-kilometraje="{{ v.kilometraje }}"
+                                        data-notas="{{ v.notas }}" data-bs-toggle="modal"
+                                        data-bs-target="#editVehiculoModal">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+
+                                    </a>
+                                    <button type="button" class="btn btn-danger" data-bs-toggle="modal"
+                                        data-bs-target="#deleteVehiculoModal" data-id="{{ v.id }}"
+                                        data-marca="{{ v.marca }}" data-modelo="{{ v.modelo }}"
+                                        data-matricula="{{ v.matricula }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paginación -->
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item disabled">
+                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Anterior</a>
+            </li>
+            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+            <li class="page-item"><a class="page-link" href="#">2</a></li>
+            <li class="page-item"><a class="page-link" href="#">3</a></li>
+            <li class="page-item">
+                <a class="page-link" href="#">Siguiente</a>
+            </li>
+        </ul>
+    </nav>
+</main>
+
+
+<!-- Modal para añadir vehículo -->
+<div class="modal fade" id="addVehiculoModal" tabindex="-1" aria-labelledby="addVehiculoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addVehiculoModalLabel">Añadir Nuevo Vehículo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Formulario para añadir vehículo -->
+                <form method="Post" id="vehicleForm">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="cliente" class="form-label">Cliente</label>
+                            <select class="form-select" id="cliente" name="idcliente" required>
+                                <option value="">Seleccionar cliente</option>
+                                {% for c in clientes %}
+                                <option value="{{ c.id }}">{{ c.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="tipo" class="form-label">Tipo</label>
+                            <select class="form-select" id="tipo" name="tipo" required>
+                                <option value="">Seleccionar tipo</option>
+                                <option value="Turismo">Turismo</option>
+                                <option value="Motocicleta">Motocicleta</option>
+                                <option value="Furgoneta">Furgoneta</option>
+                                <option value="Camión">Camión</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="marca" class="form-label">Marca</label>
+                            <input type="text" class="form-control" id="marca" name="marca" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="modelo" class="form-label">Modelo</label>
+                            <input type="text" class="form-control" id="modelo" name="modelo" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="matricula" class="form-label">Matrícula</label>
+                            <input type="text" class="form-control" id="matricula" name="matricula" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="anio" class="form-label">Año de Matriculación</label>
+                            <input type="number" class="form-control" id="anio" name="anio" min="1900" max="2025"
+                                required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="color" class="form-label">Color</label>
+                            <input type="text" class="form-control" id="color" name="color">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="kilometraje" class="form-label">Kilometraje</label>
+                            <input type="number" class="form-control" id="kilometraje" name="kilometraje" min="0">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="estado" class="form-label">Estado</label>
+                            <select class="form-select" id="estado" name="estado" required>
+                                <option value="">Seleccionar estado</option>
+                                <option value="Activo">Activo</option>
+                                <option value="En reparación">En reparación</option>
+                                <option value="Fuera de servicio">Fuera de servicio</option>
+                                <option value="Vendido">Vendido</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="fechaUltimoMantenimiento" class="form-label">Última Revisión</label>
+                            <input type="date" class="form-control" id="fechaUltimoMantenimiento"
+                                name="fechaUltimoMantenimiento">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notas" class="form-label">Notas adicionales</label>
+                        <textarea class="form-control" id="notas" name="notas" rows="3"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar vehículo (similar al de añadir pero con datos precargados) -->
+<div class="modal fade" id="editVehiculoModal" tabindex="-1" aria-labelledby="editVehiculoModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editVehiculoModalLabel">Editar Vehículo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Formulario para editar vehículo (con datos precargados) -->
+                <form id="editVehiculoForm" method="POST">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editCliente" class="form-label">Cliente</label>
+                            <select class="form-select" id="editCliente" name="idcliente" required>
+                                <option value="">Seleccionar cliente</option>
+                                {% for c in clientes %}
+                                <option value="{{ c.id }}">{{ c.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editTipo" class="form-label">Tipo</label>
+                            <select class="form-select" id="editTipo" name="tipo" required>
+                                <option value="">Seleccionar tipo</option>
+                                <option value="Turismo" selected>Turismo</option>
+                                <option value="Motocicleta">Motocicleta</option>
+                                <option value="Furgoneta">Furgoneta</option>
+                                <option value="Camión">Camión</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editMarca" class="form-label">Marca</label>
+                            <input type="text" class="form-control" id="editMarca" value="Seat" name="marca" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editModelo" class="form-label">Modelo</label>
+                            <input type="text" class="form-control" id="editModelo" value="Ibiza" name="modelo"
+                                required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editMatricula" class="form-label">Matrícula</label>
+                            <input type="text" class="form-control" id="editMatricula" value="1234 ABC" name="matricula"
+                                required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editAnio" class="form-label">Año</label>
+                            <input type="number" class="form-control" id="editAnio" value="2018" name="anio" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editColor" class="form-label">Color</label>
+                            <input type="text" class="form-control" id="editColor" name="color" value="Rojo">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editKilometraje" class="form-label">Kilometraje</label>
+                            <input type="number" class="form-control" id="editKilometraje" name="kilometraje"
+                                value="45000">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editNotas" class="form-label">Notas adicionales</label>
+                        <textarea class="form-control" id="editNotas" name="notas"
+                            rows="3">Vehículo en buen estado general.</textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="saveEditVehiculoBtn">Guardar Cambios</button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para confirmar eliminación -->
+<div class="modal fade" id="deleteVehiculoModal" tabindex="-1" aria-labelledby="deleteVehiculoModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteVehiculoModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="deleteModalText">¿Está seguro de que desea eliminar el vehículo <strong>Seat Ibiza (1234
+                        ABC)</strong>?</p>
+                <p class="text-danger">Esta acción no se puede deshacer. Se eliminarán también todas las reparaciones
+                    asociadas a este vehículo.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <a id="confirmDeleteBtn" href="#" class="btn btn-danger">Eliminar</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    const deleteModal = document.getElementById('deleteVehiculoModal');
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+
+        // Extract data attributes
+        const vehiculoId = button.getAttribute('data-id');
+        const marca = button.getAttribute('data-marca');
+        const modelo = button.getAttribute('data-modelo');
+        const matricula = button.getAttribute('data-matricula');
+
+        // Update confirmation text
+        const modalText = deleteModal.querySelector('#deleteModalText strong');
+        modalText.textContent = `${marca} ${modelo} (${matricula})`;
+
+        // Update the delete link
+        const deleteUrlTemplate = "{{ url_for('vehiculos.borrar', id='__ID__') }}";
+        const deleteUrl = deleteUrlTemplate.replace('__ID__', vehiculoId);
+        deleteModal.querySelector('#confirmDeleteBtn').setAttribute('href', deleteUrl);
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.edit-btn').forEach(button => {
+            button.addEventListener('click', function () {
+                // Get vehicle data from attributes
+                const id = this.getAttribute('data-id');
+                const cliente = this.getAttribute('data-cliente');
+                const tipo = this.getAttribute('data-tipo');
+                const marca = this.getAttribute('data-marca');
+                const modelo = this.getAttribute('data-modelo');
+                const matricula = this.getAttribute('data-matricula');
+                const anio = this.getAttribute('data-anio');
+                const color = this.getAttribute('data-color');
+                const kilometraje = this.getAttribute('data-kilometraje');
+                const notas = this.getAttribute('data-notas');
+
+                // Populate the modal fields
+                document.getElementById('editCliente').value = cliente;
+                document.getElementById('editTipo').value = tipo;
+                document.getElementById('editMarca').value = marca;
+                document.getElementById('editModelo').value = modelo;
+                document.getElementById('editMatricula').value = matricula;
+                document.getElementById('editAnio').value = anio;
+                document.getElementById('editColor').value = color;
+                document.getElementById('editKilometraje').value = kilometraje;
+                document.getElementById('editNotas').value = notas;
+
+
+                const clienteSelect = document.getElementById('editCliente');
+
+                // Set selected option by value (ID)
+                for (let option of clienteSelect.options) {
+                    if (option.value === cliente) {
+                        option.selected = true;
+                        break;
+                    }
+                }
+                // Update the form action to include the vehicle ID
+                const form = document.getElementById('editVehiculoForm');
+                form.action = `/vehiculos/editar/${id}`; // Adjust the route if different
+            });
+        });
+
+        // Submit form when save button clicked
+        document.getElementById('saveEditVehiculoBtn').addEventListener('click', function () {
+            document.getElementById('editVehiculoForm').submit();
+        });
+    });
+</script>
+
+{% endblock %}

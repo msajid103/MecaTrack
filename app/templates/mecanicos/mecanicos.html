@@ -1,0 +1,334 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <!-- Barra superior con botón de menú para móviles y usuario -->
+    <div
+        class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <button class="btn d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="h2">Mecánicos</h1>
+        </div>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMecanicoModal">
+                <i class="fas fa-plus me-1"></i> Nuevo Mecánico
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtros y búsqueda -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" placeholder="Buscar mecánico...">
+                <button class="btn btn-outline-secondary" type="button">Buscar</button>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select class="form-select">
+                <option selected>Filtrar por especialidad</option>
+                <option>Mecánica general</option>
+                <option>Electricidad</option>
+                <option>Chapa y pintura</option>
+                <option>Neumáticos</option>
+                <option>Todos</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Mecánicos -->
+    <div class="row mb-4">
+        {% for m in mecanicos %}
+        <div class="col-md-4 mb-4">
+            <div class="card mecanico-card h-100">
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="avatar-placeholder mb-3">
+                            <i class="fas fa-user-circle fa-5x"></i>
+                        </div>
+                        <h4>{{ m.nombre }}</h4>
+                        <p class="text-muted">{{ m.especialidad }}</p>
+                        <span class="badge {{ 'bg-success' if m.estado|lower == 'disponible' else 'bg-warning' }}">{{
+                            m.estado|capitalize }}</span>
+                    </div>
+                    <hr>
+                    <div class="info-list">
+                        <div class="info-item">
+                            <span class="info-label"><i class="fas fa-envelope me-2"></i>Email</span>
+                            <span class="info-value">{{ m.email }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label"><i class="fas fa-phone me-2"></i>Teléfono</span>
+                            <span class="info-value">{{ m.telefono }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label"><i class="fas fa-tools me-2"></i>Reparaciones Activas</span>
+                            <span class="info-value">{{ m.reparaciones_activas if m.reparaciones_activas is defined else
+                                '?' }}</span>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-center mt-3">
+                        <a href="{{ url_for('mecanicos.detalle', nif=m.nif) }}" class="btn btn-info me-2">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <button type="button" class="btn btn-primary me-2 edit-btn"
+                                data-nif="{{ m.nif }}"
+                                data-nombre="{{ m.nombre }}"
+                                data-email="{{ m.email }}"
+                                data-telefono="{{ m.telefono }}"
+                                data-direccion="{{ m.direccion or '' }}"
+                                data-fecha-contratacion="{{ m.fechaContratacion if m.fechaContratacion else '' }}"
+                                data-estado="{{ m.estado }}"
+                                data-especialidad="{{ m.especialidad }}"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#editMecanicoModal">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <a href="{{ url_for('mecanicos.borrar') }}?nif={{ m.nif | urlencode }}" class="btn btn-danger">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <p class="text-center">No hay mecánicos registrados.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Paginación -->
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item disabled">
+                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Anterior</a>
+            </li>
+            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+            <li class="page-item"><a class="page-link" href="#">2</a></li>
+            <li class="page-item"><a class="page-link" href="#">3</a></li>
+            <li class="page-item">
+                <a class="page-link" href="#">Siguiente</a>
+            </li>
+        </ul>
+    </nav>
+</main>
+
+<!-- Modal para añadir mecánico -->
+<div class="modal fade" id="addMecanicoModal" tabindex="-1" aria-labelledby="addMecanicoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addMecanicoModalLabel">Añadir Nuevo Mecánico</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="nombre" class="form-label">Nombre completo</label>
+                            <input type="text" class="form-control" id="nombre" name="nombre" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="nif" class="form-label">NIF/DNI</label>
+                            <input type="text" class="form-control" id="nif" name="nif" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="telefono" class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" id="telefono" name="telefono" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="especialidad" class="form-label">Especialidad</label>
+                            <select class="form-select" id="especialidad" name="especialidad" required>
+                                <option value="">Seleccionar especialidad</option>
+                                <option value="Mecánica general">Mecánica general</option>
+                                <option value="Electricidad">Electricidad</option>
+                                <option value="Chapa y pintura">Chapa y pintura</option>
+                                <option value="Neumáticos">Neumáticos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="fecha_contratacion" class="form-label">Fecha de contratación</label>
+                            <input type="date" class="form-control" id="fecha_contratacion" name="fecha_contratacion"
+                                required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="direccion" class="form-label">Dirección</label>
+                            <input type="text" class="form-control" id="direccion" name="direccion">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="estado" class="form-label">Estado</label>
+                            <select class="form-select" id="estado" name="estado" required>
+                                <option value="">Seleccionar estado</option>
+                                <option value="Activo">Activo</option>
+                                <option value="Inactivo">Inactivo</option>
+                                <option value="Vacaciones">Vacaciones</option>
+                                <option value="Baja temporal">Baja temporal</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notas" class="form-label">Notas adicionales</label>
+                        <textarea class="form-control" id="notas" name="notas" rows="3"
+                            placeholder="Información adicional sobre el mecánico..."></textarea>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="button" class="btn btn-secondary me-md-2" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Registrar Mecánico</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar mecánico -->
+<div class="modal fade" id="editMecanicoModal" tabindex="-1" aria-labelledby="editMecanicoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editMecanicoModalLabel">Editar Mecánico</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editMecanicoForm" method="POST">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editNombre" class="form-label">Nombre completo</label>
+                            <input type="text" class="form-control" id="editNombre" name="nombre" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editNif" class="form-label">NIF/DNI</label>
+                            <input type="text" class="form-control" id="editNif" name="nif" readonly>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="editEmail" name="email" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editTelefono" class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" id="editTelefono" name="telefono" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editEspecialidad" class="form-label">Especialidad</label>
+                            <select class="form-select" id="editEspecialidad" name="especialidad" required>
+                                <option value="">Seleccionar especialidad</option>
+                                <option value="Mecánica general">Mecánica general</option>
+                                <option value="Electricidad">Electricidad</option>
+                                <option value="Chapa y pintura">Chapa y pintura</option>
+                                <option value="Neumáticos">Neumáticos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editFechaContratacion" class="form-label">Fecha de contratación</label>
+                            <input type="date" class="form-control" id="editFechaContratacion" name="fecha_contratacion" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editDireccion" class="form-label">Dirección</label>
+                            <input type="text" class="form-control" id="editDireccion" name="direccion">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editEstado" class="form-label">Estado</label>
+                            <select class="form-select" id="editEstado" name="estado" required>
+                                <option value="">Seleccionar estado</option>
+                                <option value="Activo">Activo</option>
+                                <option value="Inactivo">Inactivo</option>
+                                <option value="Vacaciones">Vacaciones</option>
+                                <option value="Baja temporal">Baja temporal</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="saveEditBtn">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para confirmar eliminación -->
+<div class="modal fade" id="deleteMecanicoModal" tabindex="-1" aria-labelledby="deleteMecanicoModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteMecanicoModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro de que desea eliminar al mecánico <strong>Carlos Rodríguez</strong>?</p>
+                <p class="text-danger">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger">Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle edit button clicks
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Get data from button attributes
+            const nif = this.getAttribute('data-nif');
+            const nombre = this.getAttribute('data-nombre');
+            const email = this.getAttribute('data-email');
+            const telefono = this.getAttribute('data-telefono');
+            const direccion = this.getAttribute('data-direccion');
+            const fechaContratacion = this.getAttribute('data-fecha-contratacion');
+            const estado = this.getAttribute('data-estado');
+            const especialidad = this.getAttribute('data-especialidad');
+            
+            // Populate the edit modal form
+            document.getElementById('editNif').value = nif;
+            document.getElementById('editNombre').value = nombre;
+            document.getElementById('editEmail').value = email;
+            document.getElementById('editTelefono').value = telefono;
+            document.getElementById('editDireccion').value = direccion;
+            document.getElementById('editFechaContratacion').value = fechaContratacion;
+            document.getElementById('editEstado').value = estado;
+            document.getElementById('editEspecialidad').value = especialidad;
+            
+            // Set the form action URL
+            const form = document.getElementById('editMecanicoForm');
+            form.action = "{{ url_for('mecanicos.editar', nif='') }}" + nif;
+        });
+    });
+    
+    // Handle save button click
+    document.getElementById('saveEditBtn').addEventListener('click', function() {
+        document.getElementById('editMecanicoForm').submit();
+    });
+});
+</script>
+
+{% endblock %}
